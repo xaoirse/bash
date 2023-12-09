@@ -44,7 +44,7 @@ argparse() {
     args=($params)
 }
 
-test_argparse() {
+_test_argparse() {
 
     argparse "p:v" "-p jisoo"
     assert_eq "${opts[p]}" "jisoo"
@@ -125,11 +125,9 @@ test_argparse() {
 }
 
 assert_eq() {
-    assert_eq() {
-        if [ "$1" != "$2" ]; then
-            printf "%s\n" "right: $1"
-            printf "%s\n" "left : $2"
-            return 2
-        fi
-    }
+    if [ "$1" != "$2" ]; then
+        printf "%s\n" "right: $1"
+        printf "%s\n\n" "left : $2"
+        return 2
+    fi
 }
