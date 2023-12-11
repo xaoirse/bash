@@ -1,4 +1,4 @@
-# Simple fish argparse for bash
+# Simple Arg Parser for Bash
 
 ### USAGE
 
@@ -6,7 +6,7 @@
 source <(curl -s https://raw.githubusercontent.com/xaoirse/bash/main/functions.sh)
 
 # Examples
-    argparse "j:g:v" "rose -j jisoo -v lisa jennie -g blackpink"
+    argparse "j:g::v" "rose -j jisoo -v lisa jennie -g blackpink"
     
     assert_eq "${opts[j]}" "jisoo"
     assert_eq "${opts[g]}" "blackpink"
@@ -15,4 +15,7 @@ source <(curl -s https://raw.githubusercontent.com/xaoirse/bash/main/functions.s
     assert_eq "${args[0]}" "rose"
     assert_eq "${args[1]}" "lisa"
     assert_eq "${args[2]}" "jennie"
+    ...
+    argparse "b::p:v" "-b -p" >/dev/null || assert_eq $? 2
+
 ```
