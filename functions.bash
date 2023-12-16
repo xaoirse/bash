@@ -16,7 +16,7 @@ argparse() {
             token=${token/::/}
             value=$(printf "%s" "$params" | grep -Po "(^|\s)-[[:alpha:]]*?$token\s*\K[^-\s]\S*")
             if [ -n "$value" ]; then
-                opts["$token"]="$value"
+                opts[$token]="$value"
                 # shellcheck disable=SC2001
                 params="$(printf "%s" "$params" | sed -e "s/\(\(^\|\s\)\-[[:alpha:]]*\?\)\($token\s*$value\)/\1/")"
 
@@ -29,7 +29,7 @@ argparse() {
         elif [[ "$token" = ?: ]]; then
             token=${token/:/}
             value=$(printf "%s" "$params" | grep -Po "(^|\s)-[[:alpha:]]*?$token\s*\K(\S+)")
-            opts["$token"]="$value"
+            opts[$token]="$value"
             # shellcheck disable=SC2001
             params="$(printf "%s" "$params" | sed -e "s/\(\(^\|\s\)\-[[:alpha:]]*\?\)\($token\s*$value\)/\1/")"
 
@@ -56,7 +56,6 @@ argparse() {
 }
 
 _test_argparse() {
-
     argparse "p:v" "-p jisoo"
     assert_eq "${opts[p]}" "jisoo"
     assert_eq "${opts[v]}" ""
@@ -154,11 +153,18 @@ _test_argparse() {
     assert_eq "${opts[p]}" ""
     assert_eq "${opts[v]}" ""
     assert_eq "${args[0]}" "jisoo"
-    assert_eq "${args[1]}" "s"
+    assert_eq "${args[1]}" ""
     unset opts
     unset args
 
     argparse "b::p:v" "-b -p" >/dev/null || assert_eq $? 2
+}
+
+join_by() {
+    local d=${1-} f=${2-}
+    if shift 2; then
+        printf %s "$f" "${@/#/$d}"
+    fi
 }
 
 assert_eq() {

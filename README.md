@@ -1,4 +1,5 @@
 # Simple Arg Parser for Bash
+Easy to use in functions. It's a straightforward function without any binary files or temporary files.
 
 ### USAGE
 
