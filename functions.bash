@@ -3,12 +3,14 @@
 # SA https://github.com/xaoirse/bash
 
 argparse() {
+
     unset opts
     unset args
     declare -gA opts
     declare -ga args
 
-    params="$2"
+    params="${*:2}"
+    params=$(printf '%s' "$params" | tr '\n' ' ')
 
     for token in $(printf "%s" "$1" | grep -Po '[[:alpha:]]:*'); do
         # a:: must set value if -a <value>
@@ -18,7 +20,7 @@ argparse() {
             if [ -n "$value" ]; then
                 opts[$token]="$value"
                 # shellcheck disable=SC2001
-                params="$(printf "%s" "$params" | sed -e "s/\(\(^\|\s\)\-[[:alpha:]]*\?\)\($token\s*$value\)/\1/")"
+                params="$(printf "%s" "$params" | sed -e "s!\(\(^\|\s\)\-[[:alpha:]]*\?\)\($token\s*$value\)!\1!")"
 
             else
                 printf "%s\n" "The option -$token must be specified and have a value"
@@ -27,11 +29,11 @@ argparse() {
 
         # a: set value if -a <value>
         elif [[ "$token" = ?: ]]; then
-            token=${token/:/}
-            value=$(printf "%s" "$params" | grep -Po "(^|\s)-[[:alpha:]]*?$token\s*\K(\S+)")
+            token="${token/:/}"
+            value="$(printf '%s' "$params" | grep -Po "(^|\s)-[[:alpha:]]*?$token\s*\K(\S+)")"
             opts[$token]="$value"
             # shellcheck disable=SC2001
-            params="$(printf "%s" "$params" | sed -e "s/\(\(^\|\s\)\-[[:alpha:]]*\?\)\($token\s*$value\)/\1/")"
+            params="$(printf '%s' "$params" | sed -e "s!\(\(^\|\s\)\-[[:alpha:]]*\?\)\($token\s*$value\)!\1!")"
 
         # a set true if -a
         else
@@ -52,7 +54,7 @@ argparse() {
     # shellcheck disable=SC2001
     params="$(printf "%s" "$params" | sed 's,\(^\|\s\)-\+, ,g')"
     # shellcheck disable=SC2206
-    args=($params)
+    set -f && args=($params) && set +f
 }
 
 _test_argparse() {
@@ -130,7 +132,7 @@ _test_argparse() {
     assert_eq "$(argparse "p:v" "-vp")" ""
     assert_eq "$(argparse "v:p:" "-v blckpink -p")" ""
 
-    assert_eq "$(argparse "v" "-n")" "Unknown option"
+    assert_eq "$(argparse "v" "-n")" "Unknown option" hhhhh
     assert_eq "$(argparse "v:p:" "-v blckpink -np bp")" "Unknown option"
 
     assert_eq "$(argparse "b::" "-p")" "The option -b must be specified and have a value"
@@ -158,6 +160,13 @@ _test_argparse() {
     unset args
 
     argparse "b::p:v" "-b -p" >/dev/null || assert_eq $? 2
+
+    argparse "" "*"
+    assert_eq "${args[0]}" "*"
+
+    argparse "u:" "-u http://domain.tld/home-index"
+    assert_eq "${opts[u]}" "http://domain.tld/home-index"
+
 }
 
 join_by() {
