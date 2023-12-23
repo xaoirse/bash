@@ -55,6 +55,12 @@ argparse() {
     params="$(printf "%s" "$params" | sed 's,\(^\|\s\)-\+, ,g')"
     # shellcheck disable=SC2206
     set -f && args=($params) && set +f
+
+    if [ ! -t 0 ]; then
+        while read line; do
+            args+=("$line")
+        done
+    fi
 }
 
 _test_argparse() {
@@ -167,13 +173,27 @@ _test_argparse() {
     argparse "u:" "-u http://domain.tld/home-index"
     assert_eq "${opts[u]}" "http://domain.tld/home-index"
 
+    argparse '' a b <<<c
+    assert_eq "${args[0]}" "a"
+    assert_eq "${args[1]}" "b"
+    assert_eq "${args[2]}" "c"
+
+    _test_argparse_helper <<<c
+
+}
+
+_test_argparse_helper() {
+    argparse '' a b
+
+    assert_eq "${args[0]}" "a"
+    assert_eq "${args[1]}" "b"
+    assert_eq "${args[2]}" "c"
 }
 
 join_by() {
-    local d=${1-} f=${2-}
-    if shift 2; then
-        printf %s "$f" "${@/#/$d}"
-    fi
+    separator="$1" # e.g. constructing regex, pray it does not contain %s
+    regex="$(printf "%s${separator}" "${@:2}")"
+    echo "${regex}"
 }
 
 assert_eq() {
