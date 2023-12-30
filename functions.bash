@@ -138,7 +138,7 @@ _test_argparse() {
     assert_eq "$(argparse "p:v" "-vp")" ""
     assert_eq "$(argparse "v:p:" "-v blckpink -p")" ""
 
-    assert_eq "$(argparse "v" "-n")" "Unknown option" hhhhh
+    assert_eq "$(argparse "v" "-n")" "Unknown option"
     assert_eq "$(argparse "v:p:" "-v blckpink -np bp")" "Unknown option"
 
     assert_eq "$(argparse "b::" "-p")" "The option -b must be specified and have a value"
@@ -190,10 +190,24 @@ _test_argparse_helper() {
     assert_eq "${args[2]}" "c"
 }
 
+# join_by , a b
 join_by() {
     separator="$1" # e.g. constructing regex, pray it does not contain %s
     regex="$(printf "%s${separator}" "${@:2}")"
     echo "${regex}"
+}
+
+function anew {
+    local file="$1"
+
+    if [ ! -t 0 ]; then
+        while read line; do
+            if ! grep -Fxq "$line" "$file"; then
+                echo "$line" >>"$file"
+                echo "$line"
+            fi
+        done
+    fi
 }
 
 assert_eq() {
