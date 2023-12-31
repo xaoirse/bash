@@ -210,6 +210,16 @@ function anew {
     fi
 }
 
+tops() {
+    if [ ! -t 0 ]; then
+        if [ "$1" = "-v" ]; then
+            sort <"/dev/stdin" | uniq -c | sort -rgk 1
+        else
+            sort <"/dev/stdin" | uniq -c | sort -rgk 1 | sed 's,^\s*,,' | cut -d " " -f2
+        fi
+    fi
+}
+
 assert_eq() {
     if [ "$1" != "$2" ]; then
         printf "$(tput setaf 1 bold)%s ✖$(tput sgr0)$(tput setaf 1) $1 $(tput setaf 5)!= $(tput sgr0)$(tput setaf 1)$2$(tput sgr0)\n" "$([ -n "$3" ] && printf '%s' ":: $3")"
