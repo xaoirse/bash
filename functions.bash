@@ -213,9 +213,9 @@ function anew {
 tops() {
     if [ ! -t 0 ]; then
         if [ "$1" = "-v" ]; then
-            sort <"/dev/stdin" | uniq -c | sort -rgk 1
+            sort <"/dev/stdin" | grep . | uniq -c | sort -rgk 1
         else
-            sort <"/dev/stdin" | uniq -c | sort -rgk 1 | sed 's,^\s*,,' | cut -d " " -f2
+            sort <"/dev/stdin" | grep . | uniq -c | sort -rgk 1 | sed 's,^\s*,,' | cut -d " " -f2-
         fi
     fi
 }
