@@ -39,7 +39,7 @@ argparse() {
         else
             if printf "%s" "$params" | grep -Pq "(^|\s)-[[:alpha:]]*?$token"; then
                 opts[$token]="true"
-                params="$(printf "%s" "$params" | sed -e "/\(^\|\s\)-[[:alpha:]]*/s/$token//g")"
+                params="$(printf "%s" "$params" | sed -r "s,(^|\s)(-\w*)($token)(.*),\1\2\4,g")"
             fi
         fi
 
@@ -180,6 +180,19 @@ _test_argparse() {
 
     _test_argparse_helper <<<c
 
+    argparse "s" "https://domain.tld -s"
+    assert_eq "${args[0]}" "https://domain.tld"
+    assert_eq "${opts[s]}" "true"
+
+    argparse "qsr" "-qsr https://domain.tld "
+    assert_eq "${args[0]}" "https://domain.tld"
+    assert_eq "${opts[q]}" "true"
+    assert_eq "${opts[s]}" "true"
+    assert_eq "${opts[r]}" "true"
+
+    argparse "s" "-s https://domain.tld -s"
+    assert_eq "${args[0]}" "https://domain.tld"
+    assert_eq "${opts[s]}" "true"
 }
 
 _test_argparse_helper() {
@@ -217,6 +230,14 @@ tops() {
         else
             sort <"/dev/stdin" | grep . | uniq -c | sort -rgk 1 | sed 's,^\s*,,' | cut -d " " -f2-
         fi
+    fi
+}
+
+unwrap_or() {
+    if [ -n "$1" ]; then
+        echo "$1"
+    else
+        echo "$2"
     fi
 }
 
