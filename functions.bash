@@ -210,12 +210,12 @@ join_by() {
     echo "${regex}"
 }
 
-function anew {
+anew() {
     local file="$1"
 
     if [ ! -t 0 ]; then
         while read line; do
-            if ! grep -Fxq "$line" "$file"; then
+            if ! test -f "$file" || ! grep -Fxq "$line" "$file"; then
                 echo "$line" >>"$file"
                 echo "$line"
             fi
