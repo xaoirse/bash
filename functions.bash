@@ -2,6 +2,133 @@
 
 # SA https://github.com/xaoirse/bash
 
+parseargs() {
+    unset ARGS
+    declare -gA ARGS
+    args=""
+
+    string="$*"
+    len=${#string}
+
+    var_name=""
+    var_val=""
+    state=" "
+    save=0
+    for ((i=0; i < len; i++)); do
+        c="${string:i:1}"
+        case "$state" in
+            "-")
+                case "$c" in
+                    [a-zA-Z])
+                        if [ -n "$var_name" ]; then
+                            declare -g "ARGS[$var_name]"="1"
+                            echo "+ ARGS[$var_name]"="1"
+                        fi
+                        var_name="$c"
+                    ;; 
+                    "-")
+                        state="--" 
+                    ;;
+                    " ")
+                        state="val"
+                    ;;
+                    *)
+                    return 2
+                    ;;
+                esac
+            ;; 
+            "--")
+                case "$c" in
+                    " ")
+                        return 3
+                    ;;
+                    *)
+                        var_name="$c"
+                        state="name"
+                    ;; 
+                    
+                esac
+            ;; 
+            "name")
+                case "$c" in
+                    [a-zA-Z0-9_])
+                        var_name="$var_name$c"
+                        state="name"
+                    ;;
+                    " ")
+                        state="val"
+                    ;; 
+                    *)
+                        return 4 
+                    ;;
+                esac
+            ;;
+            "val")
+                case "$c" in
+                    "-")
+                        if [ -z "$var_val" ]; then
+                            declare -g "ARGS[$var_name]"="1"
+                            echo "- ARGS[$var_name]"="1"
+                            var_name=""
+                            state="-"
+                        else
+                            var_val="$var_val$c"
+                        fi
+                    ;; 
+                    " ")
+                        args="$args "
+                        save=1
+                    ;; 
+                    *)
+                        var_val="$var_val$c"
+                        
+                    ;;
+                esac
+            ;; 
+            " ")
+            case "$c" in
+                    "-")
+                        state="-" 
+                    ;;
+
+                    *)
+                        args="$args$c"                        
+                    ;;
+                esac
+            ;; 
+            *)
+                return 6
+            ;; 
+        esac
+
+        if [ $save -eq 1 ]; then 
+            declare -g "ARGS[$var_name]"="${var_val:=1}"
+            echo  "/ ARGS[$var_name]"="${var_val:=1}"
+            save=0
+            state=" "
+            var_val=""
+            var_name=""
+        fi
+
+    done
+
+    if [ -n "$var_name" ]; then 
+        declare -g "ARGS[$var_name]"="${var_val:=1}"
+        echo  "= ARGS[$var_name]"="${var_val:=1}"
+        save=0
+        state=" "
+        var_val=""
+        var_name=""
+    fi
+}
+
+# Function to parse command-line arguments
+# Usage: argparse "options" "$@"
+# Options format: "a:b::c" where:
+#   - c: single character option without value
+#   - b: single character option with a required value
+#   - a:: single character option with an optional value
+# Example: argparse "a:b::c" "$@"
 argparse() {
 
     unset opts
@@ -233,22 +360,32 @@ tops() {
     fi
 }
 
+# Function to unwrap a value or return a default
 unwrap_or() {
-    if [ -n "$1" ]; then
-        echo "$1"
+    local value="$1"
+    local default="$2"
+    
+    if [ -n "$value" ]; then
+        echo "$value"
     else
-        echo "$2"
+        echo "$default"
     fi
 }
 
+# Function to assert equality of two values
 assert_eq() {
-    if [ "$1" != "$2" ]; then
-        printf "$(tput setaf 1 bold)%s ✖$(tput sgr0)$(tput setaf 1) $1 $(tput setaf 5)!= $(tput sgr0)$(tput setaf 1)$2$(tput sgr0)\n" "$([ -n "$3" ] && printf '%s' ":: $3")"
+    local expected="$1"
+    local actual="$2"
+    local message="$3"
+    
+    if [ "$expected" != "$actual" ]; then
+        printf "$(tput setaf 1 bold)%s ✖$(tput sgr0)$(tput setaf 1) $expected $(tput setaf 5)!= $(tput sgr0)$(tput setaf 1)$actual$(tput sgr0)\n" "$([ -n "$message" ] && printf '%s' ":: $message")"
         return 1
     else
-        printf "$(tput setaf 2 bold)%s ✔$(tput sgr0)$(tput setaf 2) $1 $(tput setaf 6)== $(tput sgr0)$(tput setaf 2)$2$(tput sgr0)\n" "$([ -n "$3" ] && printf '%s' ":: $3")"
+        printf "$(tput setaf 2 bold)%s ✔$(tput sgr0)$(tput setaf 2) $expected $(tput setaf 6)== $(tput sgr0)$(tput setaf 2)$actual$(tput sgr0)\n" "$([ -n "$message" ] && printf '%s' ":: $message")"
     fi
 }
+
 
 # Text mode commands
 
