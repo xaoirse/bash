@@ -3,8 +3,13 @@
 # SA https://github.com/xaoirse/bash
 
 parseargs() {
+    # ARGS: Includes options, arguments, and flags.
+    #       Flags are represented with a value of 1 for presence and 0 for absence.
     unset ARGS
+    # shellcheck disable=SC2034
     declare -gA ARGS
+
+    # All other parameters
     args=""
 
     string="$*"
@@ -14,6 +19,7 @@ parseargs() {
     var_val=""
     state=" "
     save=0
+
     for ((i=0; i < len; i++)); do
         c="${string:i:1}"
         case "$state" in
@@ -22,7 +28,6 @@ parseargs() {
                     [a-zA-Z])
                         if [ -n "$var_name" ]; then
                             declare -g "ARGS[$var_name]"="1"
-                            echo "+ ARGS[$var_name]"="1"
                         fi
                         var_name="$c"
                     ;; 
@@ -68,7 +73,6 @@ parseargs() {
                     "-")
                         if [ -z "$var_val" ]; then
                             declare -g "ARGS[$var_name]"="1"
-                            echo "- ARGS[$var_name]"="1"
                             var_name=""
                             state="-"
                         else
@@ -90,7 +94,6 @@ parseargs() {
                     "-")
                         state="-" 
                     ;;
-
                     *)
                         args="$args$c"                        
                     ;;
@@ -103,7 +106,6 @@ parseargs() {
 
         if [ $save -eq 1 ]; then 
             declare -g "ARGS[$var_name]"="${var_val:=1}"
-            echo  "/ ARGS[$var_name]"="${var_val:=1}"
             save=0
             state=" "
             var_val=""
@@ -114,13 +116,13 @@ parseargs() {
 
     if [ -n "$var_name" ]; then 
         declare -g "ARGS[$var_name]"="${var_val:=1}"
-        echo  "= ARGS[$var_name]"="${var_val:=1}"
         save=0
         state=" "
         var_val=""
         var_name=""
     fi
 }
+
 
 # Function to parse command-line arguments
 # Usage: argparse "options" "$@"
@@ -332,9 +334,14 @@ _test_argparse_helper() {
 
 # join_by , a b
 join_by() {
-    separator="$1" # e.g. constructing regex, pray it does not contain %s
-    regex="$(printf "%s${separator}" "${@:2}")"
-    echo "${regex}"
+    separator="$1"
+    shift
+    result="$1"
+    shift
+    for arg in "$@"; do
+        result="${result}${separator}${arg}"
+    done
+    echo "${result}"
 }
 
 anew() {
