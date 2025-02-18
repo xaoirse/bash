@@ -2,10 +2,28 @@
 
 # SA https://github.com/xaoirse/bash
 
-parseargs() {
-    # ARGS: Includes options, arguments, and flags.
+# Function to parse command-line arguments
+# Usage: argparser "$@"
+# Example: argparser -rvk -o out -st --verbous --in intake --nocpr -yc jisoo heydari --bp jennie love you -r -r -r
+# Output:
+# ARGS[r]=1
+# ARGS[v]=1
+# ARGS[k]=1
+# ARGS[o]=out
+# ARGS[s]=1
+# ARGS[t]=1
+# ARGS[verbous]=1
+# ARGS[in]=intake
+# ARGS[nocpr]=1
+# ARGS[y]=1
+# ARGS[c]=jisoo
+# ARGS[bp]=jennie
+# args=mehrnoosh heydari love you
+argparser() {
+    # ARGS: An array that Includes options, arguments, and flags.
     #       Flags are represented with a value of 1 for presence and 0 for absence.
     unset ARGS
+
     # shellcheck disable=SC2034
     declare -gA ARGS
 
@@ -20,91 +38,95 @@ parseargs() {
     state=" "
     save=0
 
-    for ((i=0; i < len; i++)); do
+    for ((i = 0; i < len; i++)); do
         c="${string:i:1}"
         case "$state" in
-            "-")
-                case "$c" in
-                    [a-zA-Z])
-                        if [ -n "$var_name" ]; then
-                            declare -g "ARGS[$var_name]"="1"
-                        fi
-                        var_name="$c"
-                    ;; 
-                    "-")
-                        state="--" 
-                    ;;
-                    " ")
-                        state="val"
-                    ;;
-                    *)
-                    return 2
-                    ;;
-                esac
-            ;; 
-            "--")
-                case "$c" in
-                    " ")
-                        return 3
-                    ;;
-                    *)
-                        var_name="$c"
-                        state="name"
-                    ;; 
-                    
-                esac
-            ;; 
-            "name")
-                case "$c" in
-                    [a-zA-Z0-9_])
-                        var_name="$var_name$c"
-                        state="name"
-                    ;;
-                    " ")
-                        state="val"
-                    ;; 
-                    *)
-                        return 4 
-                    ;;
-                esac
-            ;;
-            "val")
-                case "$c" in
-                    "-")
-                        if [ -z "$var_val" ]; then
-                            declare -g "ARGS[$var_name]"="1"
-                            var_name=""
-                            state="-"
-                        else
-                            var_val="$var_val$c"
-                        fi
-                    ;; 
-                    " ")
-                        args="$args "
-                        save=1
-                    ;; 
-                    *)
-                        var_val="$var_val$c"
-                        
-                    ;;
-                esac
-            ;; 
-            " ")
+        "-")
             case "$c" in
-                    "-")
-                        state="-" 
-                    ;;
-                    *)
-                        args="$args$c"                        
-                    ;;
-                esac
-            ;; 
+            [a-zA-Z])
+                if [ -n "$var_name" ]; then
+                    declare -g "ARGS[$var_name]"="1"
+                fi
+                var_name="$c"
+                ;;
+            "-")
+                state="--"
+                ;;
+            " ")
+                state="val"
+                ;;
             *)
-                return 6
-            ;; 
+                echo >&2 " Any other character except [- a-zA-Z] after '-' is invalid"
+                return 2
+                ;;
+            esac
+            ;;
+        "--")
+            case "$c" in
+            " ")
+                echo >&2 "Space after '--' is invalid"
+                return 3
+                ;;
+            *)
+                var_name="$c"
+                state="name"
+                ;;
+
+            esac
+            ;;
+        "name")
+            case "$c" in
+            [a-zA-Z0-9_])
+                var_name="$var_name$c"
+                state="name"
+                ;;
+            " ")
+                state="val"
+                ;;
+            *)
+                echo >&2 "Invalid character for name"
+                return 4
+                ;;
+            esac
+            ;;
+        "val")
+            case "$c" in
+            "-")
+                if [ -z "$var_val" ]; then
+                    declare -g "ARGS[$var_name]"="1"
+                    var_name=""
+                    state="-"
+                else
+                    var_val="$var_val$c"
+                fi
+                ;;
+            " ")
+                args="$args "
+                save=1
+                ;;
+            *)
+                var_val="$var_val$c"
+
+                ;;
+            esac
+            ;;
+        " ")
+            case "$c" in
+            "-")
+                state="-"
+                ;;
+            *)
+                args="$args$c"
+                ;;
+            esac
+            ;;
+        *)
+            echo >&2 "Invalid character for set state"
+            return 6
+            ;;
         esac
 
-        if [ $save -eq 1 ]; then 
+        if [ $save -eq 1 ]; then
             declare -g "ARGS[$var_name]"="${var_val:=1}"
             save=0
             state=" "
@@ -114,16 +136,41 @@ parseargs() {
 
     done
 
-    if [ -n "$var_name" ]; then 
+    if [ -n "$var_name" ]; then
         declare -g "ARGS[$var_name]"="${var_val:=1}"
         save=0
         state=" "
         var_val=""
         var_name=""
     fi
+
+    # Get piped values
+    if [ ! -t 0 ]; then
+        while read -r line; do
+            args="$args $line"
+        done
+    fi
 }
 
+# Function to filter words by length
+# Usage: echo word | filter_len -m 3 -x 5
+# Options:
+#   -m: minimum length (default: 0)
+#   -x: maximum length (default: 9999999999)
+# Example: echo "hello world" | filter_len -m 3 -x 5
+# Output: hello world
+filter_len() {
+    argparser "$@" || return 1
 
+    for arg in $args; do
+        len="${#arg}"
+        min="${ARGS[m]:-0}"
+        max="${ARGS[x]:-$(printf '%d' 0xFFFFFFFF)}"
+        ((len >= min && len <= max)) && echo "$arg"
+    done
+}
+
+# TODO delete this function.
 # Function to parse command-line arguments
 # Usage: argparse "options" "$@"
 # Options format: "a:b::c" where:
@@ -332,11 +379,14 @@ _test_argparse_helper() {
     assert_eq "${args[2]}" "c"
 }
 
-# join_by , a b
+# Function to join elements by a separator
+# Usage: join_by <separator> <element1> <element2> ...
+# Example: join_by , a b c
+# Output: a,b,c
 join_by() {
-    separator="$1"
+    local separator="$1"
     shift
-    result="$1"
+    local result="$1"
     shift
     for arg in "$@"; do
         result="${result}${separator}${arg}"
@@ -344,11 +394,15 @@ join_by() {
     echo "${result}"
 }
 
+# Function to add unique lines to a file
+# Usage: echo "line" | anew <file>
+# Example: echo "line" | anew file.txt
+# Output: line
 anew() {
     local file="$1"
 
     if [ ! -t 0 ]; then
-        while read line; do
+        while read -r line; do
             if ! test -f "$file" || ! grep -Fxq "$line" "$file"; then
                 echo "$line" >>"$file"
                 echo "$line"
@@ -357,21 +411,39 @@ anew() {
     fi
 }
 
+# Function to count the frequency of lines
+# Usage: echo "line" | tops -v
 tops() {
     if [ ! -t 0 ]; then
         if [ "$1" = "-v" ]; then
-            sort <"/dev/stdin" | grep . | uniq -c | sort -rgk 1
+            sort | grep . | uniq -c | sort -rgk 1
         else
-            sort <"/dev/stdin" | grep . | uniq -c | sort -rgk 1 | sed 's,^\s*,,' | cut -d " " -f2-
+            sort | grep . | uniq -c | sort -rgk 1 | sed 's,^\s*,,' | cut -d " " -f2-
         fi
     fi
 }
 
+# Function to trim whitespace characters
+# Usage: trim "  hello  "
+# Output: hello
+trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"
+    printf '%s' "$var"
+}
+
 # Function to unwrap a value or return a default
+# Usage: unwrap_or "value" "default"
+# Example: unwrap_or "" "default"
+# Output: default
 unwrap_or() {
-    local value="$1"
+    local value
+    value="$(trim "$1")"
     local default="$2"
-    
+
     if [ -n "$value" ]; then
         echo "$value"
     else
@@ -380,11 +452,14 @@ unwrap_or() {
 }
 
 # Function to assert equality of two values
+# Usage: assert_eq "expected" "actual" "message"
+# Example: assert_eq "apple" "apple" "fruits are equal"
+# Output: ✔ apple == apple
 assert_eq() {
     local expected="$1"
     local actual="$2"
     local message="$3"
-    
+
     if [ "$expected" != "$actual" ]; then
         printf "$(tput setaf 1 bold)%s ✖$(tput sgr0)$(tput setaf 1) $expected $(tput setaf 5)!= $(tput sgr0)$(tput setaf 1)$actual$(tput sgr0)\n" "$([ -n "$message" ] && printf '%s' ":: $message")"
         return 1
@@ -392,7 +467,6 @@ assert_eq() {
         printf "$(tput setaf 2 bold)%s ✔$(tput sgr0)$(tput setaf 2) $expected $(tput setaf 6)== $(tput sgr0)$(tput setaf 2)$actual$(tput sgr0)\n" "$([ -n "$message" ] && printf '%s' ":: $message")"
     fi
 }
-
 
 # Text mode commands
 
