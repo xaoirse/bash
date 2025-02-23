@@ -399,16 +399,24 @@ join_by() {
 # Example: echo "line" | anew file.txt
 # Output: line
 anew() {
-    local file="$1"
-
-    if [ ! -t 0 ]; then
-        while read -r line; do
-            if ! test -f "$file" || ! grep -Fxq "$line" "$file"; then
-                echo "$line" >>"$file"
-                echo "$line"
-            fi
-        done
+    # Create the file if it does not exist
+    if [ ! -f "$1" ]; then
+        touch "$1"
     fi
+
+    # Ensure the file is writable
+    if [ ! -w "$1" ]; then
+        echo "Error: File '$1' is not writable." >&2
+        return 1
+    fi
+
+    # Read from standard input line by line
+    while IFS= read -r line; do
+        # Check if the exact line already exists in the file using grep
+        if ! grep -Fxq "$line" "$1"; then
+            echo "$line" | tee -a "$1"
+        fi
+    done
 }
 
 # Function to count the frequency of lines
