@@ -4,7 +4,7 @@
 
 # Function to parse command-line arguments
 # Usage: argparser "$@"
-# Example: argparser -rvk -o out -st --verbous --in intake --nocpr -yc jisoo heydari --bp jennie love you -r -r -r
+# Example: argparser mehrnoosh -rvk -o out -st --verbous --in intake --nocpr -yc jisoo heydari --bp jennie love you -r -r -r
 # Output:
 # ARGS[r]=1
 # ARGS[v]=1
